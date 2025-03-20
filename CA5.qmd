@@ -1,11 +1,111 @@
 ---
-title: "CA5"
+title: "CA4 Group 15"
+author: "Christopher Eason ESNCHR001, Siphosethu Limane LMNSIP001"
+format: pdf
 ---
 
-## Quarto
+# Question 1
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+Once again consider the Egyptian skull data from CA1, given in CA1.csv . Construct 95% individual t, simultaneous T2, and Bonferroni confidence intervals for the means in period 1. Present a summary of the results (in any way you choose), then briefly compare and interpret.
 
 ```{r}
-1 + 1
+egyptian <- read.csv("CA1.csv")
+egyptian <- subset(egyptian, egyptian$TimePeriod==1)[, 1:4] 
+head(egyptian)
+x_bar <- colMeans(egyptian)
 ```
+
+```{r,echo=FALSE}
+library(knitr)
+# 95% Confidence Interval individual t
+p <- ncol(egyptian)
+n <- nrow(egyptian)
+S <- cov(egyptian)
+lower <- matrix(NA, nrow=ncol(egyptian), ncol =1)
+upper <- matrix(NA, nrow=ncol(egyptian), ncol =1)
+for(i in 1:ncol(egyptian)){
+  lower[i] <- round(x_bar[i] - qt(p=0.05/2, df = n-1, lower.tail = FALSE) * sqrt(S[i,i]/n),2)
+  upper[i] <- round(x_bar[i] + qt(p=0.05/2, df = n-1, lower.tail = FALSE) * sqrt(S[i,i]/n),2)
+}
+final <- cbind(lower, upper, upper - lower)
+rownames(final) <- colnames(egyptian)
+colnames(final) <- c("Lower", "Upper", "Range")
+kable(final, caption ="95% Confidence Interval individual t")
+```
+
+```{r,echo=FALSE}
+library(knitr)
+# 95% Confidence Interval T^2 Intervals Simulataneous
+p <- ncol(egyptian)
+n <- nrow(egyptian)
+S <- cov(egyptian)
+lower <- matrix(NA, nrow=ncol(egyptian), ncol =1)
+upper <- matrix(NA, nrow=ncol(egyptian), ncol =1)
+for(i in 1:ncol(egyptian)){
+  lower[i] <- round(x_bar[i] - sqrt((p*(n-1))/(n*(n-p)) * qf(p = 0.05, df1 = p, df2 = n - p, lower.tail = FALSE)) * sqrt(S[i,i]),2)
+  upper[i] <- round(x_bar[i] + sqrt((p*(n-1))/(n*(n-p)) * qf(p = 0.05, df1 = p, df2 = n - p, lower.tail = FALSE)) * sqrt(S[i,i]),2)
+}
+final <- cbind(lower, upper, upper- lower)
+rownames(final) <- colnames(egyptian)
+colnames(final) <- c("Lower", "Upper", "Range")
+kable(final, caption="95% Confidence Interval T^2 Intervals Simulataneous")
+```
+
+```{r,echo=FALSE}
+library(knitr)
+# 95% Confidence Interval Benferroni
+p <- ncol(egyptian)
+n <- nrow(egyptian)
+S <- cov(egyptian)
+lower <- matrix(NA, nrow=ncol(egyptian), ncol =1)
+upper <- matrix(NA, nrow=ncol(egyptian), ncol =1)
+for(i in 1:ncol(egyptian)){
+  lower[i] <- round(x_bar[i] - qt(p=(0.05/(2*p)), df = n-1, lower.tail = FALSE) * sqrt(S[i,i]/n),2)
+  upper[i] <- round(x_bar[i] + qt(p=(0.05/(2*p)), df = n-1, lower.tail = FALSE) * sqrt(S[i,i]/n),2)
+}
+final <- cbind(lower, upper, upper -lower)
+rownames(final) <- colnames(egyptian)
+colnames(final) <- c("Lower", "Upper", "Range")
+kable(final, caption="95% Confidence Interval Benferroni")
+```
+
+Conclusion:
+
+-   The individual t intervals' upper and lower bounds are close to each other i.e. the intervals are narrow when compared to the T\^2 simultaneous intervals where the upper and lower bounds are further away from each other i.e. the intervals are wider.
+
+-   The Bonferonni intervals lie in between the individual t intervals and the simultaneous T\^2 intervals which means it comprises from being to wide and taking into account for data covariance changes
+
+------------------------------------------------------------------------
+
+# Question 2
+
+Weight measurements were recorded for 14 individuals committed to a diet over 4 weeks– the initial measurement and 4 subsequent weekly measurements. These data are available in the file CA5.txt . We now wish to test whether the diet has any effect on weight across the entire study by testing for equality of the group’s mean weight at each time point. Apply the appropriate hypothesis test, report your findings, and draw a conclusion on the efficacy of the diet.
+
+```{r,echo=FALSE}
+# Repeat Measures
+head(CA5)
+dat <- CA5
+C <- matrix(c(1, -1, 0, 0,0,
+              0, 1,-1, 0,0 ,
+              0, 0, 1, -1,0,
+              0, 0, 0, 1, -1), nrow=4, ncol = 5, byrow = TRUE)
+x_bar <- colMeans(dat)
+S <- cov(dat)
+n <- nrow(dat)
+p <- ncol(dat)
+T2 <- n * t(C%*%x_bar) %*%solve(C%*%S%*%t(C))%*%(C%*%x_bar)
+p_value <- 1- pf(T2*(n-p+1)/((n-1)*(p-1)), p-1, n-p+1)
+
+print(paste("T^2 Test Statistic", round(T2, 3)))
+print(paste("P Value", round(p_value, 3)))
+```
+
+Hypothesis Test for Repeated Measures where i = 1, 2, 3, 4, 5 = "initial measurement", "week 1", "week 2", "week 3", "week 4"
+
+-   Null Hypothesis (H0) :The diet has no effect on weight, meaning the mean weight remains the same across all time points.\
+    i.e. $\mu_1 = \mu_2 = \mu_3 = \mu_4 =\mu_5$
+
+-   Alternative Hypothesis (H1): The diet has an effect on weight, meaning at least one time point has a different mean weight.\
+    i.e. atleast one $\mu_i$ is different where i = 1,2,3,4,5
+
+**Conclusion**: With a p-value of 0.01, we reject the null hypothesis of equal means and conclude that the diet has an effect on the weight at one or more of the time-points.
